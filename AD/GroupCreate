@@ -1,0 +1,1 @@
+Import-CSV -Path "C:\Spec\ADgroup.csv" | ForEach-Object -process {New-ADGroup -Name $_.Name -Description $_.Description -Path "OU=Groups,DC=domain,DC=local" -GroupScope Global}
