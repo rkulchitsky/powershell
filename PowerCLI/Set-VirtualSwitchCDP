@@ -1,0 +1,64 @@
+Function Set-VirtualSwitchCDP {
+ 
+      <#
+ 
+            .SYNOPSIS
+                  Set the CDP setting on a Standard Virtual Switch.
+            .DESCRIPTION
+                  Using the Get-Esxcli cmdlet you can changed the CDP Settings
+                  on virtual switch on an ESX host.
+                        .PARAMETER  VMHost
+                  ESX server to perform the function.
+            .PARAMETER  MTU
+                  The MTU settings of the vSwitch, default is 1500.Valid values are
+                  between 1500-9000
+            .PARAMETER  CDP
+                  The CDP setting for the vSwitch.
+                  Valid values are 'down', 'listen', 'advertise' or 'both'.
+            .PARAMETER  vSwitch
+                  The Name of the Standard vSwitch on which to perform the action.
+            .EXAMPLE
+                  PS C:\> $hosts = get-view -ViewType HostSystem -Property Name | select Name
+                  PS C:\> $hosts.name | Set-VirtualSwitchCDP -CDP both -vSwitch vSwitchName
+            .EXAMPLE
+                  PS C:\> Set-VirtualSwitchCDP -VMhost esx1 -MTU 1500 -CDP both -vSwitch vSwitch0
+            .EXAMPLE
+                  PS C:\> Get-VMhost Myhost | Set-VirtualSwitchCDP -vSwitch vSwitch0
+            .LINK
+                  http://technodrone.blogspot.com/2012/02/how-to-set-cdp-on-vswitchthe-powercli.html
+      #>
+ 
+    [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact='High')]
+    Param(
+    [Parameter(Position=0,Mandatory=$True,ValueFromPipeline=$True)]
+    [String]
+    $VMHost,
+ 
+    [Parameter(Position=1)]
+    [ValidateRange(1500,9000)]
+    [Int]
+    $MTU = 1500,
+ 
+    [Parameter(Position=2)]
+    [ValidateSet("down","listen","advertise","both")]
+    [String]
+    $CDP = "both",
+ 
+    [Parameter(Position=3,Mandatory=$True)]
+    [String]
+    $vSwitch
+    )
+ 
+      
+ 
+      Process
+      {
+       if ($pscmdlet.ShouldProcess($VMHOST,"Updating $vSwitch with MTU $MTU and CDP setting of $CDP"))      {
+                  foreach ($hostobject in (Get-VMHost $VMHost)) {
+                        $esxcli = Get-EsxCli -VMHost $hostobject
+                        $esxcli.network.vswitch.standard.set($CDP,$MTU,$vswitch)
+                        $esxcli.network.vswitch.standard.list()
+                  }
+            }
+      }
+}
