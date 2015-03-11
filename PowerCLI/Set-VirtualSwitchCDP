@@ -24,8 +24,6 @@ Function Set-VirtualSwitchCDP {
                   PS C:\> Set-VirtualSwitchCDP -VMhost esx1 -MTU 1500 -CDP both -vSwitch vSwitch0
             .EXAMPLE
                   PS C:\> Get-VMhost Myhost | Set-VirtualSwitchCDP -vSwitch vSwitch0
-            .LINK
-                  http://technodrone.blogspot.com/2012/02/how-to-set-cdp-on-vswitchthe-powercli.html
       #>
  
     [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact='High')]
