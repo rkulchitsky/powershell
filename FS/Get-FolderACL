@@ -1,0 +1,116 @@
+############################################
+# 
+# Просмотр ACL указанной папки
+# Powershell v4.0
+# Script v1.1 2015-04-01
+# Borodin Nikita
+#
+############################################
+
+cls
+
+function global:member
+{
+    param ($adname)
+
+	$group = Get-ADGroup $adname
+    $objects = Get-ADGroupMember $group
+	[array]$global:ingroup += $group.name
+	
+	if (!$objects)
+	{
+		$o = New-Object PSObject
+		$o | Add-Member -MemberType NoteProperty -Name Name  -Value $group.name
+		$o | Add-Member -MemberType NoteProperty -Name SAM  -Value $NULL
+		$o | Add-Member -MemberType NoteProperty -Name Ingroup -Value $NULL
+	    Write-Output $o
+	}
+	foreach ($obj in $objects)
+	{
+	    if ($obj.objectClass -eq "user")
+	    {
+			$o = New-Object PSObject
+			$o | Add-Member -MemberType NoteProperty -Name Name  -Value $obj.name
+			$o | Add-Member -MemberType NoteProperty -Name SAM  -Value $obj.samaccountname
+			$o | Add-Member -MemberType NoteProperty -Name Ingroup -Value ($global:ingroup -join(','))
+	    	Write-Output $o
+	    }
+	    elseif (($obj.objectClass -eq "group") -and ($obj.name -ne 'Domain Users') -and ($obj.name -ne $global:ingroup[0]))
+	    {
+            [array]$global:ingroup = $group.name
+	    	member -adname $obj.name
+	    }
+		else
+		{
+			$o = New-Object PSObject
+			$o | Add-Member -MemberType NoteProperty -Name Name  -Value $group.name
+			$o | Add-Member -MemberType NoteProperty -Name SAM  -Value $NULL
+			$o | Add-Member -MemberType NoteProperty -Name Ingroup -Value $NULL
+	    	Write-Output $o
+		}
+	}
+	[array]$global:ingroup = $ingroup[0]
+}
+
+function global:folderACL
+{
+    param ($Path,$exclude)
+	[array]$ocol = $null
+    (Get-ItemProperty $Path).GetAccessControl().Access | where {$exclude -notcontains $_.IdentityReference} | where { $_.IdentityReference -notlike "*LST*"} | foreach {
+		
+		$IdentityReference = $_
+		$rights = $IdentityReference.FileSystemRights
+		try
+		{
+			$group = ($IdentityReference.IdentityReference).toString().trimstart("OFFICE\")
+			$group = Get-ADGroup $group
+		    member -adname $group.name | foreach {
+			    $o = New-Object PSObject
+			    $o | Add-Member -MemberType NoteProperty -Name Ingroup -Value $_.ingroup
+			    $o | Add-Member -MemberType NoteProperty -Name Name -Value $_.name
+			    $o | Add-Member -MemberType NoteProperty -Name Account -Value $_.SAM
+			    $o | Add-Member -MemberType NoteProperty -Name Rights -Value $rights
+			    $ocol += $o
+            }
+			
+			$notAD = $false
+		}
+		catch
+		{
+			$notAD = $true
+		}
+		try
+		{
+			$user = ($IdentityReference.IdentityReference).toString().trimstart("OFFICE\")
+			$user = Get-ADUser $user
+			$o = New-Object PSObject
+		    $o | Add-Member -MemberType NoteProperty -Name Ingroup -Value $NULL
+		    $o | Add-Member -MemberType NoteProperty -Name Name -Value $user.SamAccountName
+		    $o | Add-Member -MemberType NoteProperty -Name Account -Value $user.SamAccountName
+		    $o | Add-Member -MemberType NoteProperty -Name Rights -Value $rights
+			$ocol += $o
+			
+			$notAD = $false
+		}
+		catch
+		{
+			$notAD = $true
+		}
+		if ($notAD)
+		{
+			$o = New-Object PSObject
+		    $o | Add-Member -MemberType NoteProperty -Name Ingroup -Value $NULL
+		    $o | Add-Member -MemberType NoteProperty -Name Name -Value ($IdentityReference.IdentityReference).toString().trimstart("OFFICE\")
+		    $o | Add-Member -MemberType NoteProperty -Name Account -Value $NULL
+		    $o | Add-Member -MemberType NoteProperty -Name Rights -Value $rights
+			$ocol += $o	
+		}
+    }
+    Write-Output $ocol | sort ingroup, name
+}
+
+#Инициализация переменных
+$exclude = @("OFFICE\G_DFS_resources_msk_ISD_all_RO","NT AUTHORITY\SYSTEM")
+$Path = '\\your-path-to-catalog'
+
+folderACL -Path $Path -exclude $exclude | ft -AutoSize
