@@ -1,0 +1,31 @@
+# wright by Nikita Borodin 08.05.2015
+
+
+cls
+Get-ADComputer -SearchBase "DC=corp,DC=test,DC=ru" -Properties operatingSystem -Filter {operatingSystem -like "Windows Server*"}| foreach{
+    $name = $_.name
+    $o = New-Object PSObject
+    try
+    {
+        $hotfix = Get-WmiObject -ComputerName $name -Class Win32_QuickFixEngineering -ErrorAction Stop | where {$_.HotFixID -eq "KB123456"}
+        
+        if ($hotfix)
+        {
+            $o | Add-Member -MemberType NoteProperty -Name Name -Value $name
+            $o | Add-Member -MemberType NoteProperty -Name Value -Value $true
+        }
+        else
+        {
+            $o | Add-Member -MemberType NoteProperty -Name Name -Value $name
+            $o | Add-Member -MemberType NoteProperty -Name Value -Value $false
+        }
+    }
+    catch
+    {
+        $Err = $Error[0].Exception
+        $o | Add-Member -MemberType NoteProperty -Name Name -Value $name
+        $o | Add-Member -MemberType NoteProperty -Name Value -Value $Err.Message
+    }
+    Write-Output $o
+} 
+ 
