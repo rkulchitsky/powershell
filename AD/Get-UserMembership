@@ -1,0 +1,63 @@
+Import-Module ActiveDirectory
+
+Function Get-UserMembership
+{
+    Param($UserAccount)
+    Process
+    {
+        Try {
+            $Groups = (Get-ADUser -Identity $UserAccount -Properties MemberOf | `
+              Select-Object MemberOf).MemberOf
+        }
+        Catch {
+            Return $Nothing
+        }
+        $GroupItems = @()
+        ForEach ($Group in $Groups)
+        {
+          $var = $group.split(",")
+          $var1 = $var[0]
+          $ADGroup = $var1.Substring(3)  
+          $GrpItems = New-Object -TypeName PSObject -Property @{
+          Memberof = $ADGroup}
+          $GroupItems += $GrpItems
+        }
+        Return $GroupItems | Sort memberOf
+    }
+}
+
+Function Get-UserMembership_ByName {
+    Param($UserName)
+    Process
+    {
+        Try {
+            $ResultNumber = (Get-ADUser -Filter {Name -eq $UserName} | Measure-Object).Count
+        }
+        Catch {
+            Return $Nothing
+        }
+        If ($ResultNumber -eq 0) {        
+            Write-Host "There is no such user in the system."
+            Return $Nothing
+        }
+        ElseIf ($ResultNumber -ge 2) {
+            Write-Host "There are several users in the system with the provided name." `
+              "Please use the user account way."
+            Return $Nothing
+        }
+        Else {
+            $Groups = (Get-ADUser -Filter {Name -eq $UserName} -Properties memberof | `
+              Select-Object MemberOf).memberof
+            $GroupItems = @()
+            ForEach ($Group in $Groups) {
+                $var = $group.split(",")
+                $var1 = $var[0]
+                $ADGroup = $var1.Substring(3)  
+                $GrpItems = New-Object -TypeName PSObject -Property @{
+                Memberof = $ADGroup}
+                $GroupItems += $GrpItems
+            }
+            Return $GroupItems | Sort memberOf
+        }
+    }
+}
