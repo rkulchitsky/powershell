@@ -4,7 +4,7 @@
 
 # Variables
 $VM_NAME = "TEST_VM"
-$VM_MAC = "00:15:5d:11:22:01"
+$VM_MAC = "00:16:3E:F0:39:D7"
 
 $VM_RAM = 4GB
 $VM_CPUS = 2
