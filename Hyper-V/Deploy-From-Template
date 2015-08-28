@@ -25,7 +25,7 @@ MD $VM_DEST_PATH -ErrorAction SilentlyContinue
 # ------------------------------------------------------------
 
 echo "Creating VM: $VM_NAME on ${VM_HOST}"
-$VM = New-VM -Name $VM_NAME -Path $VM_DEST_PATH -MemoryStartupBytes $VM_RAM -ComputerName $VM_HOST
+$VM = New-VM -Name $VM_NAME -Generation 2 -Path $VM_DEST_PATH -MemoryStartupBytes $VM_RAM -ComputerName $VM_HOST
 #echo "    VM Id: $( $VM.Id )"
 #echo "    VM Name: $( $VM.Name )"
 #echo "    Host: $( $VM.ComputerName )"
