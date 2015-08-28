@@ -10,9 +10,9 @@ $VM_RAM = 4GB
 $VM_CPUS = 2
 $VM_DEST_PATH = "C:\HyperV"
 $VM_VLAN = read-host "Please enter VLAN for new VM"
-$VM_HOST = "Hyper-V Hostname"
-$NETWORK_SWITCH = "LAN-2-vSwitch-1"
-$ROOT_VHD_TPL = "C:\HyperV\TEMPLATE\WIN_2012_R2_STD.vhdx"
+$VM_HOST = "HV00-AV"
+$NETWORK_SWITCH = "vSwitch-1"
+$ROOT_VHD_TPL = "C:\HyperV\TEMPLATE\template.vhdx"
 $VM_ROOT_VHD = "${VM_DEST_PATH}\VHD\${VM_NAME}.vhdx"
 $VM_DATA_VHD = "${VM_DEST_PATH}\${VM_NAME}-data.vhdx"
 $VM_DATA_VHD_SIZE = 100GB
@@ -32,7 +32,7 @@ $VM = New-VM -Name $VM_NAME -Generation 2 -Path $VM_DEST_PATH -MemoryStartupByte
 
 # Create & attach VHDs
 # ------------------------------------------------------------
-# Note: it is impossible to boot from SCSI controllers
+
 
 echo "Getting first SCSI controller"
 
