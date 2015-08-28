@@ -3,18 +3,18 @@
 # ------------------------------------------------------------
 
 # Variables
-$VM_NAME = "TEST_VM"
-$VM_MAC = "00:16:3E:F0:39:D7"
+$VM_NAME = read-host "Please enter name for new VM"
+#$VM_MAC = ":::::"
 
 $VM_RAM = 4GB
 $VM_CPUS = 2
-$VM_DEST_PATH = "C:\ClusterStorage\Volume1\tests"
-$VM_VLAN = 1
-$VM_HOST = "HYPERV-NODE-01"
-$NETWORK_SWITCH = "DefaultNetwork"
-$ROOT_VHD_TPL = "C:\ClusterStorage\Volume1\tests\Template.vhdx"
-$VM_ROOT_VHD = "${VM_DEST_PATH}/${VM_NAME}.vhdx"
-$VM_DATA_VHD = "${VM_DEST_PATH}/${VM_NAME}-data.vhdx"
+$VM_DEST_PATH = "C:\HyperV"
+$VM_VLAN = read-host "Please enter VLAN for new VM"
+$VM_HOST = "Hyper-V Hostname"
+$NETWORK_SWITCH = "LAN-2-vSwitch-1"
+$ROOT_VHD_TPL = "C:\HyperV\TEMPLATE\WIN_2012_R2_STD.vhdx"
+$VM_ROOT_VHD = "${VM_DEST_PATH}\VHD\${VM_NAME}.vhdx"
+$VM_DATA_VHD = "${VM_DEST_PATH}\${VM_NAME}-data.vhdx"
 $VM_DATA_VHD_SIZE = 100GB
 $VM_CLUSTER = "HV_CLUSTER_01"
 
@@ -38,34 +38,33 @@ echo "Getting first SCSI controller"
 
 echo "Copying Root VHD to $VM_ROOT_VHD"
 Convert-VHD -Path $ROOT_VHD_TPL -DestinationPath $VM_ROOT_VHD
-Add-VMHardDiskDrive -VM $VM -ControllerType IDE -ControllerNumber 0 -ControllerLocation 0 -Path $VM_ROOT_VHD
+Add-VMHardDiskDrive -VM $VM -ControllerNumber 0 -ControllerLocation 0 -Path $VM_ROOT_VHD
 
-echo "Creating new Data disk $VM_DATA_VHD_SIZE in $VM_DATA_VHD"
-New-VHD -Path $VM_DATA_VHD -SizeBytes $VM_DATA_VHD_SIZE -Dynamic
-Add-VMHardDiskDrive -VM $VM -ControllerType IDE -ControllerNumber 0 -ControllerLocation 1 -Path $VM_DATA_VHD
+#echo "Creating new Data disk $VM_DATA_VHD_SIZE in $VM_DATA_VHD"
+#New-VHD -Path $VM_DATA_VHD -SizeBytes $VM_DATA_VHD_SIZE -Dynamic
+#Add-VMHardDiskDrive -VM $VM -ControllerNumber 0 -ControllerLocation 1 -Path $VM_DATA_VHD
 
 # Set CPU / memory
 # ------------------------------------------------------------
 
 echo "Setting CPU / Memory configuration"
 Set-VMProcessor -VM $VM -Count $VM_CPUS
-Set-VMMemory -VM $VM -DynamicMemoryEnabled $True -MaximumBytes 512GB -MinimumBytes 16GB -StartupBytes $VM_RAM
+Set-VMMemory -VM $VM -StartupBytes $VM_RAM
 
 # Configure NIC
 # ------------------------------------------------------------
 
-echo "Configuring NIC (mac address: ${VM_MAC}, switch: ${NETWORK_SWITCH})"
+echo "Configuring NIC (switch: ${NETWORK_SWITCH})"
 Remove-VMNetworkAdapter -VM $VM
-Add-VMNetworkAdapter -VM $VM -Name PublicNIC -StaticMacAddress $VM_MAC -SwitchName $NETWORK_SWITCH
+Add-VMNetworkAdapter -VM $VM -Name NIC1 -SwitchName $NETWORK_SWITCH
 $ADAPTER = Get-VMNetworkAdapter -VM $VM
 Set-VMNetworkAdapterVlan -VMNetworkAdapter $ADAPTER -Access -VlanId $VM_VLAN
 # Connect-VMNetworkAdapter -VMNetworkAdapter $ADAPTER -SwitchName $NETWORK_SWITCH
 
 # Add VM to cluster
 # ------------------------------------------------------------
-
-echo "Adding VM to cluster"
-Add-ClusterVirtualMachineRole -VMName $VM_NAME -Cluster $VM_CLUSTER
+#echo "Adding VM to cluster"
+#Add-ClusterVirtualMachineRole -VMName $VM_NAME -Cluster $VM_CLUSTER
 
 # Start VM
 # ------------------------------------------------------------
