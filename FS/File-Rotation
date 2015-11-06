@@ -1,0 +1,118 @@
+#Функция создания логов
+function global:LogPath
+{
+	param ([bool]$Readhost = $false, [string]$logpath = "C:\Scripts\Logs\File_Rotation", [string]$file = "log.log")
+	$Date = Get-Date -DisplayHint DateTime -Format yyyy-MM-dd
+	if ($file -ne "")
+	{
+		if ($Readhost -eq $false)
+		{		
+			if ((Test-Path $logpath) -eq $false)
+			{
+				New-Item $logpath -type directory | Out-Null
+				Write-Output "$logpath\$Date$file"
+			}
+			else
+			{
+				Write-Output "$logpath\$Date$file"
+			}
+		}
+		else
+		{
+			$logpath = (Read-Host "Enter the path").trimend("\\")
+			if ((Test-Path $logpath) -eq $false)
+			{
+				New-Item $logpath -type directory | Out-Null
+				Write-Output "$logpath\$Date$file"
+			}
+			else
+			{
+				Write-Output "$logpath\$Date$file"
+			}
+		}
+	}
+	elseif ($file -eq "")
+	{
+		if ($Readhost -eq $false)
+		{		
+			if ((Test-Path $logpath) -eq $false)
+			{
+				New-Item $logpath -type directory | Out-Null
+				Write-Output "$logpath"
+			}
+			else
+			{
+				Write-Output "$logpath"
+			}
+		}
+		else
+		{
+			$logpath = (Read-Host "Enter the path").trimend("\\")
+			if ((Test-Path $logpath) -eq $false)
+			{
+				New-Item $logpath -type directory | Out-Null
+				Write-Output "$logpath"
+			}
+			else
+			{
+				Write-Output "$logpath"
+			}
+		}
+	}
+}
+#Функция ротации файлов 
+function global:file_rotation
+{
+    #Параметры функции
+    #Папка с файлами, колличество дней, старше которых файлы необходимо удалать
+    #Ключ лога - отправлять отчет письмом или нет
+    param ($path,[int]$day,[bool]$log = $true)
+    [array]$ocol = $null
+    # Проверяем папку
+    if ((Test-Path $path) -eq $true)
+    {
+        #Находим файлы старше указанной даты
+        $list = get-childitem $path | Where {$_.LastWriteTime -lt (get-date).AddDays(-$day)}
+        #Если файлы есть
+        if ($list -ne $null) {
+            $list | foreach {
+                $o = New-Object PSObject
+                try
+                {
+                    #Пытаемся удалить файл
+                    $_.FullName | Remove-Item -Recurse
+                    $o | Add-Member -MemberType NoteProperty -Name "Status" -Value "DELETED"
+                }
+                catch
+                {
+                    #Собираем ошибки при удалении
+                    $o | Add-Member -MemberType NoteProperty -Name "Status" -Value "ERROR"                
+                    $_.Exception.Message | out-file -FilePath (logpath -file "_error_Remove.log") -Append
+    	            $_.Exception.ItemName | out-file -FilePath (logpath -file "_error_Remove.log") -Append
+                }
+                $o | Add-Member -MemberType NoteProperty -Name "FileName" -Value $_.name
+                $o | Add-Member -MemberType NoteProperty -Name "FullName" -Value $_.FullName
+                #Пишем полный лог со всеми удаленными файлами
+                $o | select Status,FullName | Export-Csv -path (LogPath -file "_deleted_full.csv") -Encoding UTF8 -NoTypeInformation -Force -Append
+                $ocol += $o
+            }
+        }
+        #Если стоит ключ лога и коллекция удаленных файлов не пустая
+        if (($log -eq $true) -and ($ocol -ne $null))
+        {
+            #Выводим результат в файлы
+            $ocol | select Status,FileName | Export-Csv -path (LogPath -file "deleted.csv") -Encoding UTF8 -NoTypeInformation -Force
+            #Отсылаем почтой
+            send-mailmessage -to "email@email.example" -from "File_Rotation $env:COMPUTERNAME <File_Rotation@kidzania.ru>" -subject ("Logs by File_Rotation.ps1 for "+(Get-Date -DisplayHint DateTime -Format yy.MM.dd)) -Body "В папке $path удалены файлы старше $day дней. Список в аттаче" -SmtpServer "my smtp address" -Attachments (LogPath -file "deleted.csv") -Encoding utf8
+            #Удаляем файл с логом
+            Remove-Item -Path (LogPath -file "deleted.csv")
+        }
+    }
+    else
+    {
+        "Путь $path не найден" | out-file -FilePath (logpath -file "_error_getGC.log") -Append
+    }
+}
+
+#Удаление бекапов
+file_rotation -path "My Path" -day 3
