@@ -3,7 +3,6 @@
 # Просмотр ACL указанной папки
 # Powershell v4.0
 # Script v1.1 2015-04-01
-# Borodin Nikita
 #
 ############################################
 
@@ -110,7 +109,7 @@ function global:folderACL
 }
 
 #Инициализация переменных
-$exclude = @("OFFICE\G_DFS_resources_msk_ISD_all_RO","NT AUTHORITY\SYSTEM")
+$exclude = @("ADATUM\Group_name_resources_all_RO","NT AUTHORITY\SYSTEM")
 $Path = '\\your-path-to-catalog'
 
 folderACL -Path $Path -exclude $exclude | ft -AutoSize
